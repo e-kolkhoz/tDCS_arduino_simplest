@@ -1,3 +1,4 @@
+const String ver = "1.0";
 const int analogInPin = A0; // Analog input pin that the potentiometer is attached to
 const int analogOutPin = 9; // Analog output pin that the LED is attached to
 
@@ -14,10 +15,10 @@ float epsilon_mA = 0.03; //maximal difference between target_mA and real current
 
 //INIT GLOBALS
 float outV = maxOutV; //voltage on PWM output
-int state = -1; /*    -1 - brain is not detected, sorry)))
+int state = -10; /*    -1 - brain is not detected, sorry)))
                        0 - voltage is changing to set target current
                        1 - all fine. you have target current
-                     -10 - turn V off and configure params
+                     -10 - turn V off
                   */
 int debounced_state = 0; //for debounce
 int zeros_len = 0; //for debounce
@@ -32,13 +33,14 @@ float computeOutVoltage(float V, float new_mA){
     return V;
     }
   if(new_mA<0.01){
-     return maxOutV/5.0;//for safety
+     state = -1; 
+     return maxOutV;
     }
   float new_V = (target_mA/new_mA)*V; //voltage can be changed proportional to mA gain
   if(new_V>maxOutV){
     state = -1; //resistance is too big, no brain in chain?
-    //return maxOutV;
-    return maxOutV/5.0;//for safety
+    return maxOutV;
+    //return maxOutV/5.0;//for safety
     }
   state = 0;
   return 0.1*new_V+0.9*V;//some output smoothing
@@ -86,8 +88,8 @@ void process_feedback(){
   debounced_state = debounced_state_compute(state);
   Serial.print("V = ");
   Serial.print(V);
-  Serial.print("\t mA = ");
-  Serial.print(new_mA);
+  Serial.print("\t target_mA = ");
+  Serial.print(target_mA);
   Serial.print("\t smoothed_mA = ");
   Serial.print(smoothed_mA);
   Serial.print("\t debounced_state = ");
@@ -99,7 +101,7 @@ void process_feedback(){
   delay(2);  
   }
 
-void set_conf_state(){
+void stop_device(){
   state = -10;
   analogWrite(analogOutPin, 0);  
   }
@@ -116,7 +118,7 @@ void clearAndHome()
 }
 
 void help(){
-  Serial.println("Scanner control");
+  Serial.println("tDSC arduino, ver "+ver);
   Serial.println("'?' - help");
   Serial.println("'target_mA X' - set target mA to X");
   Serial.println("'epsilon_mA X' - set epsilon_mA mA to X");
@@ -144,6 +146,8 @@ bool parse_param(String &cmdString){
       return false;
     }
     epsilon_mA = val;
+  }else if(command=="R"){
+    R = val;
   }else{
     return false;  
   }
@@ -161,16 +165,20 @@ void loop(){
     process_feedback();
     }
   if (Serial.available() > 0){      
-      set_conf_state();
       char v = Serial.read();
-      if (byte(v) == 13){
-         clearAndHome();
+      if (v == '?'){
+        stop_device();
+        }      
+      if (byte(v) == 13){         
          if (commandString=="?"){
+                clearAndHome();
                 help();
+         }else if (commandString == "stop"){
+                stop_device();
          }else if (commandString == "start"){
                 state = -1;
-                outV = maxOutV;
-         }else{//'go_pos X' or shit          
+                outV = maxOutV/5.0;
+         }else{//         
                 bool ok = parse_param(commandString);
                 if(!ok){
                   Serial.println("!unrecognized " + commandString);
@@ -179,7 +187,9 @@ void loop(){
          commandString = "";
       }else{
          commandString+=v;
-         Serial.print(v);
+         if(state==-10){
+            Serial.print(v);
+         }
       }      
    }
   

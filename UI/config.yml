@@ -1,0 +1,11 @@
+#visual log params
+display_critical: True
+display_warning: True
+display_info: True
+display_debug: True
+
+#hardware
+R: 470.0
+
+#configurable
+epsilon_mA: 0.03
