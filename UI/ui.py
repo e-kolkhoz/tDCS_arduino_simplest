@@ -1,7 +1,13 @@
 import sys
 import yaml #pip3 install yaml
+
 from PySide import QtCore, QtGui, QtUiTools #pip3 install pyside 
 from time import sleep
+
+from PIL import Image #pip3 install Pillow
+import io
+#from PIL import ImageQt
+#from PySide.QtGui import QImage, QImageReader, QLabel, QPixmap, QApplication
 
 from serial_class import tDCS #backend
 from visual_log import Logging #logging wrapper with connection to visual log in window
@@ -38,8 +44,12 @@ class MainWindow(QtGui.QMainWindow):
         
         self.ui.lblReal.setEnabled(False)
         self.ui.lblVoltage.setEnabled(False)
-        self.ui.lblPayloadR.setEnabled(False)  
         self.ui.lblTime.setEnabled(False)
+        image_bytes = logo_buf.getvalue()       
+        self.imgQ = QtGui.QImage()
+        self.imgQ .loadFromData(image_bytes)        
+        pixMap = QtGui.QPixmap.fromImage(self.imgQ)     
+        self.ui.lblImg.setPixmap(pixMap)
         
         ##try to connect
         #self.connect()
@@ -73,7 +83,6 @@ class MainWindow(QtGui.QMainWindow):
                                      .format(sd['target_mA'], setted_target_mA))
         self.ui.lblReal.setText('Real, mA: {0:.2f}'.format(sd['smoothed_mA']))
         self.ui.lblVoltage.setText('Voltage, V: {0:.2f}'.format(sd['V']))
-        self.ui.lblPayloadR.setText('Payload, Ohm: {0:.2f}'.format(sd['brain_impedance']))
         self.ui.lblTime.setText('Time: {}'.format(seconds2string(sd['duration'])))
         self.plot_vectors(sd['vectors'])
         
@@ -97,21 +106,18 @@ class MainWindow(QtGui.QMainWindow):
             self.tdcs.stop() 
             self.ui.lblReal.setEnabled(False)
             self.ui.lblVoltage.setEnabled(False)
-            self.ui.lblPayloadR.setEnabled(False)
             self.ui.lblTime.setEnabled(False)
         elif self.tdcs.state == 'Connected':
             self.ui.btnStart.setText('Stop')
             self.tdcs.start()
             self.ui.lblReal.setEnabled(True)
             self.ui.lblVoltage.setEnabled(True)
-            self.ui.lblPayloadR.setEnabled(True) 
             self.ui.lblTime.setEnabled(True)
         else:
             self.log.critical('Device is not connected')
             self.ui.btnStart.setText('Start')
             self.ui.lblReal.setEnabled(False)
             self.ui.lblVoltage.setEnabled(False)
-            self.ui.lblPayloadR.setEnabled(False)  
             self.ui.lblTime.setEnabled(False)
   
 
@@ -121,7 +127,10 @@ if __name__ == '__main__':
     with open('config.yml') as f:
         config = yaml.load(f)
     log = Logging(config)
-    
+    #set img
+    im = Image.open("tDCS.png")
+    logo_buf = io.BytesIO()
+    im.save(logo_buf, 'PNG')  
     app = QtGui.QApplication(sys.argv)
     with tDCS(log, config) as tdcs:        
         w = MainWindow(tdcs=tdcs, log=log, config=config)

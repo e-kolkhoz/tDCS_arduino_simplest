@@ -1,20 +1,31 @@
 from time import time, sleep
 import serial #pip3 install pyserial
 import serial.tools.list_ports as list_ports
-import numpy as np
+import math
+from copy import deepcopy
+#import numpy as np
 
-def init_nan_vec(n):
-    vec = np.empty(n)
-    vec[:] = np.nan
-    return vec
+#def init_nan_vec(n):
+    #vec = np.empty(n)
+    #vec[:] = np.nan
+    #return vec
 
-def append_and_cut_vec(old_vec, new_vec):
-    n = new_vec.shape[0]
-    vec = np.roll(old_vec, -n)
-    vec[-n:] = new_vec
-    return vec
+#def append_and_cut_vec(old_vec, new_vec):
+    #n = new_vec.shape[0]
+    #vec = np.roll(old_vec, -n)
+    #vec[-n:] = new_vec
+    #return vec
     
+def init_nan_vec(n):
+    return [float('nan'),]*n
+    
+def append_and_cut_vec(old_vec, new_vec):
+    n = len(old_vec)
+    vec = (old_vec+new_vec)[-n:]
+    return vec
 
+    
+#serial.serialutil.SerialException
 class ArduinoSerial():
     '''class for cleaning some putty compatibility shit, 
        fixed baudrate and other hardcode stuff'''
@@ -201,7 +212,6 @@ class tDCSArduino():
 class tDCS(tDCSArduino):
     
     state_labels = ['debounced_state', 'smoothed_mA', 'V', 'target_mA']
-    brain_imp_label = 'brain_impedance'
     
     def __init__(self, log, config,  n_samples=1000):
         self.n_samples = n_samples #number of samples in memory
@@ -215,7 +225,6 @@ class tDCS(tDCSArduino):
         vs = {}
         for label in self.state_labels:
             vs[label] = init_nan_vec(self.n_samples)
-        vs[self.brain_imp_label] = init_nan_vec(self.n_samples)
         self.state_vectors = vs        
     
     def discover_and_connect(self):
@@ -235,40 +244,20 @@ class tDCS(tDCSArduino):
         
     def __process_state_vectors(self, state_vectors):
         new_vecs = {label:[] for label in self.state_labels}
-        last_valid = {label:np.nan for label in self.state_labels}
-        last_valid[self.brain_imp_label] = np.nan
+        last_valid = {label:float('nan') for label in self.state_labels}
         R = self.config['R']
         #make lists of values from arduino output
         for sample in state_vectors:
             for label in self.state_labels:                    
-                if label in sample:
-                    
+                if label in sample:                    
                     val = sample[label]
                     last_valid[label] = val
-                else:
-                    
-                    val = np.nan  
-                    
-                new_vecs[label].append(val)
-                
-                if label == 'smoothed_mA':
-                    I = val
-                elif label == 'V':
-                    V = val                
-            #compute brain impedance
-            if not (np.isnan(I) or np.isnan(V)):
-                try:
-                    val = V/I*1000.0 - R
-                except ZeroDivisionError:
-                    val = np.inf
-                last_valid[self.brain_imp_label] = val
-            else:
-                val = np.nan
-            new_vecs[self.brain_imp_label] = val
-            
+                else:                    
+                    val = float('nan')                    
+                new_vecs[label].append(val)                      
         #add new output to vectors
         for label in self.state_labels:            
-            append_and_cut_vec(self.state_vectors[label] , np.array(new_vecs[label]))
+            append_and_cut_vec(self.state_vectors[label] , new_vecs[label])
             
         return last_valid         
     
@@ -279,7 +268,7 @@ class tDCS(tDCSArduino):
         state_vectors = self.get_state_vectors()
         last_values = self.__process_state_vectors(state_vectors)
         res.update(last_values)
-        if not np.isnan(res['debounced_state']):
+        if not math.isnan(res['debounced_state']):
             if res['debounced_state'] == -1:
                 res['state'] = '!Too big impedance'
             elif res['debounced_state'] == 1:
@@ -295,8 +284,7 @@ if __name__ == '__main__':
     from visual_log import Logging2Console
     log = Logging2Console()
     with open('config.yml') as fp:
-        config = yaml.load(fp)
-    
+        config = yaml.load(fp) 
     
     with tDCS(log, config) as tdcs:
         if not tdcs.port:

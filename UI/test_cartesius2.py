@@ -11,6 +11,41 @@ from time import time
 
 from PySide import QtCore, QtGui, QtUiTools #pip3 install pyside 
 import sys
+
+
+class OwnImageWidget(QtGui.QWidget):
+    def __init__(self, parent=None):
+        super(OwnImageWidget, self).__init__(parent)
+        self.image = None
+
+    def setImage(self, image):
+        self.image = image
+        sz = image.size()
+        self.setMinimumSize(sz)
+        self.update()
+
+    def paintEvent(self, event):
+        qp = QtGui.QPainter()
+        qp.begin(self)
+        if self.image:
+            qp.drawImage(QtCore.QPoint(0, 0), self.image)
+        qp.end()
+        
+    #def setIOBuf(self, buf):
+        #image_bytes = buf.getvalue()       
+        #imgQ = QtGui.QImage()
+        #imgQ.loadFromData(buf.getvalue())
+        #self.setImage(imgQ)
+        
+    def setPillowImg(self, img):
+        buf = io.BytesIO()
+        img.save(buf,'bmp')
+        image_bytes = buf.getvalue()       
+        imgQ = QtGui.QImage()
+        imgQ.loadFromData(buf.getvalue())
+        self.setImage(imgQ)        
+
+
 #class LineChart(mod_main.CoordinateSystemElement):
 
     #color = None
@@ -96,24 +131,19 @@ new_im = Image.new('RGBA', (w,h))
 new_im.paste(img1, (0,0))
 new_im.paste(img2, (0,h//2))
 print('pst', time()-t)
-#coordinate_system.add(charts.Function(f, start=0, end=len(y), step=1, color=(0, 255, 0)))
-plot_buf = io.BytesIO()
-new_im.save(plot_buf,'bmp')
-print('full', time()-t)
 new_im.save('plot.bmp')
 print()
+
+
 if __name__ == '__main__':
     app = QtGui.QApplication(sys.argv)
     window = QtGui.QMainWindow()
     window.setGeometry(0, 0, 400, 200)    
-    pic = QtGui.QLabel(window)
-    pic.setGeometry(10, 10, 400, 100)
-    #use full ABSOLUTE path to the image, not relative
-    image_bytes = plot_buf.getvalue()       
-    imgQ = QtGui.QImage()
-    imgQ.loadFromData(image_bytes)        
-    pixMap = QtGui.QPixmap.fromImage(imgQ) 
-    pic.setPixmap(pixMap)    
+    pic = QtGui.QLabel(window)    
+    pic.setGeometry(10, 10, 398, 218)
     
+    ImgWidget = OwnImageWidget(pic)
+    #use full ABSOLUTE path to the image, not relative
+    ImgWidget.setPillowImg(new_im)
     window.show()
     sys.exit(app.exec_())    

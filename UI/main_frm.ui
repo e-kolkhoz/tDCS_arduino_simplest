@@ -51,6 +51,18 @@
     </item>
     <item>
      <widget class="QWidget" name="widget_4" native="true">
+      <property name="sizePolicy">
+       <sizepolicy hsizetype="Minimum" vsizetype="Minimum">
+        <horstretch>0</horstretch>
+        <verstretch>0</verstretch>
+       </sizepolicy>
+      </property>
+      <property name="minimumSize">
+       <size>
+        <width>0</width>
+        <height>220</height>
+       </size>
+      </property>
       <layout class="QHBoxLayout" name="horizontalLayout_3">
        <property name="leftMargin">
         <number>0</number>
@@ -59,12 +71,27 @@
         <number>0</number>
        </property>
        <item>
-        <widget class="QWidget" name="ImgWidget" native="true">
+        <widget class="QLabel" name="lblImg">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Fixed" vsizetype="Minimum">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
          <property name="minimumSize">
           <size>
-           <width>0</width>
-           <height>0</height>
+           <width>400</width>
+           <height>220</height>
           </size>
+         </property>
+         <property name="frameShape">
+          <enum>QFrame::StyledPanel</enum>
+         </property>
+         <property name="frameShadow">
+          <enum>QFrame::Plain</enum>
+         </property>
+         <property name="text">
+          <string/>
          </property>
         </widget>
        </item>
@@ -98,6 +125,9 @@
           </item>
           <item>
            <widget class="QLabel" name="lblReal">
+            <property name="enabled">
+             <bool>true</bool>
+            </property>
             <property name="text">
              <string>Real, mA: 0</string>
             </property>
@@ -107,13 +137,6 @@
            <widget class="QLabel" name="lblVoltage">
             <property name="text">
              <string>Voltage, V: 0</string>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QLabel" name="lblPayloadR">
-            <property name="text">
-             <string>Payload, Ohm: inf</string>
             </property>
            </widget>
           </item>
